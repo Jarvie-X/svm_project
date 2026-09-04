@@ -29,6 +29,19 @@ def test_valid_wine_sample_produces_one_recognized_category():
     assert result.class_index in {0, 1, 2}
 
 
+def test_prediction_result_contains_accuracy_input_summary_and_guidance():
+    values = load_wine().data[0].tolist()
+
+    result = predict_measurements(values)
+
+    assert result.accuracy >= 0.90
+    assert result.evaluation_count == 45
+    assert result.measurement_summary == tuple(zip(FEATURE_NAMES, values))
+    assert result.category in {"Class 0", "Class 1", "Class 2"}
+    assert "recognized categories" in result.guidance
+    assert "not a wine varietal or quality grade" in result.guidance
+
+
 @pytest.mark.parametrize("values", [[], [1] * 12, [1] * 14])
 def test_incomplete_or_wrong_length_entry_is_rejected(values):
     with pytest.raises(MeasurementValidationError, match="exactly 13"):
@@ -65,7 +78,13 @@ def test_prediction_cli_reports_result_for_scripted_valid_sample():
 
     assert completed.returncode == 0
     assert "13" in completed.stdout
+    assert "Input measurements supplied:" in completed.stdout
+    assert all(f"- {name}:" in completed.stdout for name in FEATURE_NAMES)
+    assert "Held-out test accuracy:" in completed.stdout
+    assert "labeled test samples" in completed.stdout
     assert "Predicted category: Class " in completed.stdout
+    assert "Category guidance:" in completed.stdout
+    assert "does not guarantee an individual prediction" in completed.stdout
 
 
 def test_prediction_cli_reports_correction_for_missing_values():
