@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "svm-project"
+version = "0.1.0"
+description = "Runtime readiness workflow for an Iris SVM classifier"
+requires-python = ">=3.9"
+dependencies = [
+    "scikit-learn>=1.2,<2",
+]
+
+[project.scripts]
+svm-classification-readiness = "svm_project.classifier:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
