@@ -4,6 +4,20 @@ The project includes a guided single-sample prediction entry point. It uses
 all thirteen measurements from scikit-learn's Wine Recognition dataset and
 returns one of its three dataset categories.
 
+## Release demonstration
+
+Run the complete, non-interactive release flow with thirteen positive numeric
+measurements in the displayed order:
+
+```text
+python -m wine_demo --values 13.2 1.78 2.14 11.2 100 2.65 2.76 0.26 1.28 4.38 1.05 3.4 1050
+```
+
+The release flow checks the runtime and dataset, reports deterministic
+held-out accuracy, and shows the submitted measurements, predicted category,
+and explanation. Invalid or incomplete values are rejected with correction
+messages and a non-zero exit status.
+
 ```text
 python -m wine_prediction
 ```
