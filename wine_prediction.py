@@ -7,7 +7,7 @@ import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from wine_classifier import RANDOM_STATE
+from wine_classifier import RANDOM_STATE, run_classification
 
 
 @dataclass(frozen=True)
@@ -45,10 +45,21 @@ class MeasurementValidationError(ValueError):
 
 @dataclass(frozen=True)
 class PredictionResult:
-    """The category predicted for one complete measurement set."""
+    """The explained result for one complete measurement set."""
 
     category: str
     class_index: int
+    measurements: tuple[tuple[str, float], ...]
+    accuracy: float
+    evaluation_count: int
+    evaluation_method: str
+    guidance: str
+
+    @property
+    def measurement_summary(self) -> tuple[tuple[str, float], ...]:
+        """Return the submitted values paired with their model field names."""
+
+        return self.measurements
 
 
 def measurement_guidance() -> tuple[Measurement, ...]:
@@ -100,7 +111,7 @@ def _validated_values(values: Sequence[object] | Mapping[str, object]) -> list[f
 
 
 def predict_measurements(values: Sequence[object] | Mapping[str, object]) -> PredictionResult:
-    """Validate and classify one complete set of thirteen measurements."""
+    """Validate, classify, and explain one complete set of measurements."""
 
     validated = _validated_values(values)
 
@@ -113,7 +124,24 @@ def predict_measurements(values: Sequence[object] | Mapping[str, object]) -> Pre
     model = make_pipeline(StandardScaler(), SVC(random_state=RANDOM_STATE))
     model.fit(wine.data, wine.target)
     class_index = int(model.predict([validated])[0])
-    return PredictionResult(category=f"Class {class_index}", class_index=class_index)
+    evaluation = run_classification()
+    category = f"Class {class_index}"
+    return PredictionResult(
+        category=category,
+        class_index=class_index,
+        measurements=tuple(zip(FEATURE_NAMES, validated)),
+        accuracy=evaluation.accuracy,
+        evaluation_count=evaluation.evaluation_count,
+        evaluation_method=(
+            "fixed stratified 25% split of the labeled Wine Recognition dataset "
+            f"(random_state={RANDOM_STATE})"
+        ),
+        guidance=(
+            f"{category} is one of the three recognized categories in the Wine "
+            "Recognition dataset. It is a dataset label, not a wine varietal "
+            "or quality grade."
+        ),
+    )
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -148,7 +176,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"- {error}")
         return 2
 
+    print("Input measurements supplied:")
+    for name, value in result.measurements:
+        print(f"- {name}: {value:g}")
+    print(
+        f"Held-out test accuracy: {result.accuracy:.2%} "
+        f"({result.evaluation_count} labeled test samples; {result.evaluation_method})"
+    )
     print(f"Predicted category: {result.category}")
+    print(f"Category guidance: {result.guidance}")
+    print(
+        "Accuracy summarizes performance across labeled test samples; it does "
+        "not guarantee an individual prediction. This educational result is "
+        "not wine quality, safety, health, or purchasing advice."
+    )
     return 0
 
 
